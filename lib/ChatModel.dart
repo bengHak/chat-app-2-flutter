@@ -1,6 +1,8 @@
 import 'package:scoped_model/scoped_model.dart';
-import 'package:flutter_socket_io/flutter_socket_io.dart';
-import 'package:flutter_socket_io/socket_io_manager.dart';
+import 'package:stomp_dart_client/stomp.dart';
+import 'package:stomp_dart_client/stomp_config.dart';
+import 'package:stomp_dart_client/stomp_frame.dart';
+
 import 'dart:convert';
 
 import './User.dart';
@@ -18,38 +20,35 @@ class ChatModel extends Model {
   User currentUser;
   List<User> friendList = List<User>();
   List<Message> messages = List<Message>();
-  SocketIO socketIO;
+  String token =
+      "eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIxMSIsImlhdCI6MTYxMzI1NjI5OSwiZXhwIjoxNjEzMjU5ODk5fQ.JBsFKDOM19QyxrDT-Nj2j7C4aq-iPvCiPTOK9Zs43EY";
+
+  final client = StompClient(
+      config: StompConfig.SockJS(
+          url: 'http://localhost:8080/gs-guide-websocket',
+          onConnect: (StompClient client, StompFrame frame) => client.subscribe(
+              destination: '/topic/greetings',
+              callback: (StompFrame frame) {
+                var jsonData = json.decode(frame.body);
+                print(jsonData);
+              }),
+          onWebSocketError: (dynamic error) => print(error.toString()),
+          onDebugMessage: (dynamic msg) => print(msg.toString()),
+          reconnectDelay: 0,
+          connectionTimeout: Duration(seconds: 2)));
 
   void init() {
     currentUser = users[0];
     friendList =
         users.where((user) => user.chatID != currentUser.chatID).toList();
-
-    socketIO = SocketIOManager().createSocketIO(
-        '<ENTER_YOUR_SERVER_URL_HERE>', '/',
-        query: 'chatID=${currentUser.chatID}');
-    socketIO.init();
-
-    socketIO.subscribe('receive_message', (jsonData) {
-      Map<String, dynamic> data = json.decode(jsonData);
-      messages.add(Message(
-          data['content'], data['senderChatID'], data['receiverChatID']));
-      notifyListeners();
-    });
-
-    socketIO.connect();
+    client.activate();
   }
 
   void sendMessage(String text, String receiverChatID) {
     messages.add(Message(text, currentUser.chatID, receiverChatID));
-    socketIO.sendMessage(
-      'send_message',
-      json.encode({
-        'receiverChatID': receiverChatID,
-        'senderChatID': currentUser.chatID,
-        'content': text,
-      }),
-    );
+    client.send(
+        destination: '/app/hello',
+        body: json.encode({'name': text}));
     notifyListeners();
   }
 
