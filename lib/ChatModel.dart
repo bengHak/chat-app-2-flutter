@@ -1,9 +1,9 @@
+import 'dart:convert';
+
 import 'package:scoped_model/scoped_model.dart';
 import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_config.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
-
-import 'dart:convert';
 
 import './User.dart';
 import './Message.dart';
@@ -11,17 +11,11 @@ import './Message.dart';
 class ChatModel extends Model {
   List<User> users = [
     User('IronMan', '111'),
-    User('Captain America', '222'),
-    User('Antman', '333'),
-    User('Hulk', '444'),
-    User('Thor', '555'),
   ];
 
   User currentUser;
   List<User> friendList = List<User>();
   List<Message> messages = List<Message>();
-  String token =
-      "eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIxMSIsImlhdCI6MTYxMzI1NjI5OSwiZXhwIjoxNjEzMjU5ODk5fQ.JBsFKDOM19QyxrDT-Nj2j7C4aq-iPvCiPTOK9Zs43EY";
 
   final client = StompClient(
       config: StompConfig.SockJS(
@@ -46,9 +40,7 @@ class ChatModel extends Model {
 
   void sendMessage(String text, String receiverChatID) {
     messages.add(Message(text, currentUser.chatID, receiverChatID));
-    client.send(
-        destination: '/app/hello',
-        body: json.encode({'name': text}));
+    client.send(destination: '/app/hello', body: json.encode({'name': text}));
     notifyListeners();
   }
 
